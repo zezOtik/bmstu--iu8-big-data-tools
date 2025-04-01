@@ -1,0 +1,2 @@
+# исправление версии
+pip install apache-airflow-providers-postgres==2.4.0
