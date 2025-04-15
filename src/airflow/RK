@@ -1,0 +1,15 @@
+#####
+### API Space X 1
+curl -x get "https://api.spacexdata.com/v3/launches/past?launch_year=2020"
+
+#### 2
+curl -X GET "https://api.polygon.io/v3/reference/dividends?ex_dividend_date=2025-04-15&order=asc&limit=10&apiKey=Lfmf3pUJSfuD3Qo5oMcUsgDtSUKpmtEG"
+
+### 4
+curl -X GET "https://api.polygon.io/v3/reference/splits?execution_date=2024-01-05&order=asc&limit=10&apiKey=Lfmf3pUJSfuD3Qo5oMcUsgDtSUKpmtEG"
+
+
+
+#### 3
+curl -X GET "https://api.polygon.io/vX/reference/ipos?listing_date=2021-01-05&order=desc&limit=10&apiKey=Lfmf3pUJSfuD3Qo5oMcUsgDtSUKpmtEG"\
+

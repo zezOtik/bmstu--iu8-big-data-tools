@@ -3,7 +3,6 @@ from airflow.operators.empty import EmptyOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 
 ARGS = {
@@ -24,35 +23,34 @@ def _xcom_create(**kwargs):
 
 def _xcom_get(**kwargs):
     ti = kwargs['ti']
-    # ti.xcom_push("some_xcom_key_2", int(ti.xcom_pull(key="some_xcom_key")) + int(30))
+    ti.xcom_push("some_xcom_key_2", "tyt some value")
 
 
 def _last_xcom(**kwargs):
     ti = kwargs['ti']
-    # print(ti.xcom_pull(key="some_xcom_key"))
-    print(ti.xcom_pull(key="some_xcom_key_2"))
+    print(ti.xcom_pull(key="our_xml"))
 
 
 with DAG(dag_id='xcom_test', # важный атрибут
          default_args=ARGS,
          schedule_interval='0 7 * * *',
          max_active_runs=1,
-         catchup=True) as dag:
+         catchup=False) as dag:
 
     t_1 = PythonOperator(
-        task_id='xcom_create',
+        task_id='xcom_create_task',
         dag=dag,
         python_callable=_xcom_create
     )
 
     t_2 = PythonOperator(
-        task_id="xcom_get",
+        task_id="xcom_get_task",
         dag=dag,
         python_callable=_xcom_get
     )
 
     t_3 = PythonOperator(
-        task_id="last_xcom",
+        task_id="last_xcom_task",
         dag=dag,
         python_callable=_last_xcom
     )

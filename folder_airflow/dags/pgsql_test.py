@@ -4,7 +4,7 @@ from airflow.operators.bash import BashOperator
 from datetime import datetime
 from airflow.operators.python import PythonOperator
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+# from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 
 ARGS = {
