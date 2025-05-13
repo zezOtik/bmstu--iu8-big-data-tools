@@ -33,7 +33,7 @@ def _last_xcom(**kwargs):
     print(ti.xcom_pull(key="some_xcom_key_2"))
 
 
-with DAG(dag_id='my_dag_next', # важный атрибут
+with DAG(dag_id='my_dag_next',
          default_args=ARGS,
          schedule_interval='0 7 * * *',
          max_active_runs=1,
