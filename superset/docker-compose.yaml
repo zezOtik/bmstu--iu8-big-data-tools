@@ -1,0 +1,50 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:latest
+    container_name: superset-db
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset-app
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_DIALECT=postgresql
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=superset
+      - DATABASE_PASSWORD=superset
+      - DATABASE_DB=superset
+      - SUPERSET_SECRET_KEY=my_very_secure_key_here_123!
+    volumes:
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+    ports:
+      - "8088:8088"
+    entrypoint:
+      - /bin/bash
+      - "-c"
+      - |
+        pip install psycopg2-binary && \
+        superset db upgrade && \
+        superset init && \
+        superset fab create-admin --username admin --password admin --firstname Admin --lastname User --email admin@example.com && \
+        superset run -p 8088 --host 0.0.0.0
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
