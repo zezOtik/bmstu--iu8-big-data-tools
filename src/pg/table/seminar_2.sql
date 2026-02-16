@@ -128,3 +128,22 @@ VALUES
 (19, 'Заказ №19', 4, 10, 'Магазин №10', '2023-10-19 04:00:00', '2023-10-19 04:45:00', NULL, 10),
 (20, 'Заказ №20', 5, 2, 'Магазин №2', '2023-10-20 05:00:00', '2023-10-20 05:50:00', '2023-10-21 15:00:00', 3);
 
+INSERT INTO src_store.order_details (
+    order_details_id,
+    sku_id,
+    order_id,
+    created_date,
+    updated_date,
+    deleted_date
+)
+SELECT
+    s AS order_details_id,                -- Уникальный ID строки от 1 до 50
+    (s % 20) + 1 AS sku_id,               -- SKU от 1 до 20 (циклично)
+    ((s + 5) % 20) + 1 AS order_id,       -- Order ID от 1 до 20 (циклично, со сдвигом)
+    '2023-01-01 00:00:00'::timestamp + (s * interval '1 hour') AS created_date,
+    '2023-01-01 00:00:00'::timestamp + (s * interval '1 hour') + interval '10 minutes' AS updated_date,
+    CASE 
+        WHEN s % 10 = 0 THEN '2023-12-31 23:59:59'::timestamp 
+        ELSE NULL 
+    END AS deleted_date                   -- Каждую 10-ю запись помечаем как удаленную
+FROM generate_series(1, 50) AS s;
