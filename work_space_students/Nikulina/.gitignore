@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+*.tmp
+*.temp
+*.log
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+echo "folder_docker/pg/pgdata/" >> .gitignore
+echo "*.pid" >> .gitignore
+echo "postgresql.conf" >> .gitignore
+echo "pg_log/" >> .gitignore
+echo "pg_stat/" >> .gitignore
