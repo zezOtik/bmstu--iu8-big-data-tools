@@ -40,10 +40,10 @@ HAVING count(e2.employee_name)>1;
 
 
 -- 6)
-SELECT e.employee_name, count(ep.project_id)
+SELECT e.employee_id, e.employee_name, count(ep.project_id)
 FROM employees AS e
 LEFT JOIN employee_projects AS ep
 ON e.employee_id = ep.employee_id
-GROUP BY e.employee_name
+GROUP BY e.employee_id, e.employee_name
 HAVING count(ep.project_id) > 2;
 
