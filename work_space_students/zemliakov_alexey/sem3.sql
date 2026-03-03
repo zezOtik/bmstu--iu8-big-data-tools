@@ -31,12 +31,12 @@ GROUP BY (d.department_name);
 
 
 -- 5)
-SELECT e.employee_name, count(e2.employee_name)
+SELECT e.employee_id, e.employee_name, COUNT(e2.employee_id)
 FROM employees AS e
 Left Join employees AS e2
 on e.employee_id = e2.manager_id
-GROUP BY e.employee_name
-HAVING count(e2.employee_name)>1;
+GROUP BY e.employee_id, e.employee_name
+HAVING COUNT(e2.employee_id) > 1;
 
 
 -- 6)
