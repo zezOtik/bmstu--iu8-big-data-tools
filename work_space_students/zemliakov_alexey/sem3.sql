@@ -7,7 +7,7 @@ WHERE e.is_active = TRUE;
 
 
 -- 2)
-SELECT count(project_id), status
+SELECT count(project_id) AS project_count, status
 FROM projects
 GROUP BY (status);
 
