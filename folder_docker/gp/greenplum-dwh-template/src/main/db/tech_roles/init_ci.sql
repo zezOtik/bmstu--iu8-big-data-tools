@@ -1,0 +1,6 @@
+CREATE ROLE cibot WITH NOSUPERUSER NOCREATEDB CREATEROLE LOGIN;
+GRANT ALL ON DATABASE adb TO cibot;
+ALTER TABLE public.databasechangelog OWNER TO cibot;
+ALTER TABLE public.databasechangeloglock OWNER TO cibot;
+GRANT ALL ON PROTOCOL pxf TO cibot WITH GRANT OPTION;
+GRANT ALL ON SCHEMA public TO cibot;

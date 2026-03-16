@@ -1,0 +1,11 @@
+checks:
+    T004:  # tablespace
+        ignore:
+            - object: sample_schema_ods.sample_table_1
+              valid_to: 2050-01-01
+    T006:  # default partition
+        ignore:
+            - object: sample_schema_ods.sample_table_1
+              valid_to: 2050-01-01
+
+ignore_schema:

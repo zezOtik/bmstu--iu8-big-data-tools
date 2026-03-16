@@ -1,0 +1,5 @@
+checks:
+    F010:
+        ignore_path:
+            - path: schemas/sample_schema_marts/functions/fn_sample_function_2.sql
+              valid_to: 2050-01-01

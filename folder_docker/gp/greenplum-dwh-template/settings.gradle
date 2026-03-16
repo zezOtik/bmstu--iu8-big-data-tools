@@ -1,0 +1,30 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'greenplum-dwh'
+
+// include only schemas names needed (for local testing)
+def includeOnlySchemas = ['sample_schema_dds', 'sample_schema_marts']  // ['sample_schema_ods', 'sample_schema_marts', ...]
+
+// include schemas on which others depend
+def defaultSchemas = ['sample_schema_ods']  // ['sample_schema_ods']
+
+// TODO: delete all this schemas folders from repository
+def excludeSchemas = [
+    'schema_to_exclude'
+]
+
+file('schemas').eachDir {
+    dir ->
+        if (
+            (!includeOnlySchemas || dir.name in includeOnlySchemas
+                || dir.name in defaultSchemas)
+            && !(dir.name in excludeSchemas)
+        ) {
+            include "schemas:${dir.name}"
+        }
+}

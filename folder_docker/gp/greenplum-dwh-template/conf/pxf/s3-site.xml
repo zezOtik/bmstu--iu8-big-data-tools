@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <property>
+        <name>fs.s3a.access.key</name>
+        <value>access_key</value>
+    </property>
+    <property>
+        <name>fs.s3a.secret.key</name>
+        <value>secret_key</value>
+    </property>
+    <property>
+        <name>fs.s3a.fast.upload</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>fs.s3a.endpoint</name>
+        <value>https://s3.local</value>
+    </property>
+<!--    <property>-->
+<!--        <name>fs.s3a.region</name>-->
+<!--        <value>us-east-1</value>-->
+<!--    </property>-->
+    <property>
+        <name>fs.s3a.threads.max</name>
+        <value>80</value>
+    </property>
+</configuration>

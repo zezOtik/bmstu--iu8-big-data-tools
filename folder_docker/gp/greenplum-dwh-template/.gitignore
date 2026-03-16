@@ -1,0 +1,46 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
+
+# Sublime project files
+*.sublime-project
+*.sublime-workspace
+
+
+### Gradle ###
+.gradle
+build/
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+
+# Cache of project
+.gradletasknamecache
+
+# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
+# gradle/wrapper/gradle-wrapper.properties
+
+### Gradle Patch ###
+**/build/
+
+venv*/
+*.pyc
+
+# Scripts generated artefacts
+/scripts/**/*.sql
+/scripts/**/*.xml
+.DS_Store
+/test_results/*
+.history
+
+# IDE
+.vscode/*

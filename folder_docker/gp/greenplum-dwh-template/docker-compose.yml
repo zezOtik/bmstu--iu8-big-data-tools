@@ -1,0 +1,27 @@
+version: "3"
+services:
+    gradle-runner:
+        image: gradle:5.5-jdk8
+        depends_on:
+            - gpdb
+        environment:
+            DB_HOST: gpdb
+            DB_NAME: greenplum
+            DB_USER: gpadmin
+            DEPLOY_TO: dev
+        volumes:
+            - ".:/home/gradle/project/"
+        user: gradle
+        working_dir: /home/gradle/project
+        entrypoint: ["gradle"]
+        command: ["clean", "waitForDb", "preSql", "update", "postSql"]
+
+    gpdb:
+        image: artemiynaumov/greenplum:6.19.2  # public GP image with pxf
+        ports:
+            - "5432-5532:5432"
+        volumes:
+            - "./conf/pxf:/usr/local/greenplum-db/pxf/pxf-conf/servers/default"
+        environment:
+            GP_DB: greenplum
+            GP_USER: $USERNAME  # won't work here, only gpadmin will be created

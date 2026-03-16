@@ -1,0 +1,66 @@
+import groovy.json.JsonSlurper
+
+import java.nio.file.Files
+import java.nio.file.Paths
+
+
+static def getSchemas() {
+    def jsonSlurper = new JsonSlurper()
+    if(Files.exists(Paths.get("changes.json"))) {
+        def schemas = Files.newDirectoryStream(Paths.get("schemas")).collect{it.getFileName().toString()}
+        def changes = jsonSlurper.parse(new File(Paths.get("changes.json").toUri())) as ArrayList<String>
+        schemas = changes
+            .collect{
+                new File("schemas" ).toURI().relativize(new File(it).toURI()).getPath().split("/")[0]
+            }
+            .findAll{schemas.contains(it)}
+            .unique()
+            .collect{":schemas:" + it}
+        println(schemas)
+        return schemas
+    } else {
+        return null
+    }
+}
+
+def createTask(pr) {
+    pr.apply plugin: 'org.liquibase.gradle'
+    pr.dependencies {
+        liquibaseRuntime 'org.liquibase:liquibase-core:3.7.0'
+        liquibaseRuntime 'org.postgresql:postgresql:42.2.6'
+        liquibaseRuntime "org.liquibase:liquibase-gradle-plugin:2.0.1"
+    }
+    pr.liquibase {
+        activities {
+            db {
+                changeLogFile "schemas/${pr.name}/changelog.xml"
+                classpath "${rootProject.projectDir}"
+                url rootProject.ext.dbUrl
+                username rootProject.ext.dbUser
+                password rootProject.ext.dbPassword
+                databaseChangeLogTableName 'SCHEMACHANGELOG'
+                databaseChangeLogLockTableName 'SCHEMACHANGELOGLOCK'
+                liquibaseSchemaName "${pr.name}"
+            }
+        }
+    }
+
+    tasks.getByPath("${pr.path}:update").dependsOn(":preSql")
+    tasks.getByPath(":postSql").dependsOn(tasks.getByPath("${pr.path}:update"))
+}
+
+def incremental = rootProject.ext.isIncremental ? rootProject.ext.isIncremental.toBoolean() : false
+
+if(incremental) {
+    def schemas = getSchemas()
+    if(schemas != null) {
+        subprojects { pr ->
+            if (schemas.contains(pr.path)) {
+                createTask(pr)
+            }
+        }
+    }
+} else {
+    subprojects { pr -> createTask(pr) }
+}
+

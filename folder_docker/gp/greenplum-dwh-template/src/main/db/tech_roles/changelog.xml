@@ -1,0 +1,27 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="set:role:gpadmin" author="12345678" runAlways="true">
+        <sql>SET ROLE gpadmin</sql>
+    </changeSet>
+
+    <changeSet id="init:ci" author="12345678">
+        <sqlFile path="init_ci.sql" splitStatements="false" relativeToChangelogFile="true"/>
+    </changeSet>
+
+    <changeSet id="reset:role" author="12345678" runAlways="true">
+        <sql>RESET ROLE</sql>
+    </changeSet>
+
+    <changeSet id="set:role:cibot" author="12345678" context="all" runOnChange="true" runAlways="true">
+        <sql>SET ROLE cibot;</sql>
+        <comment>Switch to cibot role</comment>
+    </changeSet>
+
+    <include file="roles.sql" relativeToChangelogFile="true"/>
+    <include file="grants.sql" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>
