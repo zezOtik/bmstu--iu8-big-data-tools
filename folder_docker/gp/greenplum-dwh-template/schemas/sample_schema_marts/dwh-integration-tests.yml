@@ -1,0 +1,7 @@
+checks:
+    T004:
+        ignore:
+            - object: sample_schema_marts.sample_table_1
+              valid_to: 2050-01-01
+
+ignore_schema:

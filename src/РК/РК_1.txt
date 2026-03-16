@@ -1,0 +1,373 @@
+-- Теоритические вопросы к защите РК
+-- 1) В чем разница меджу OLTP и OLAP?
+-- 2) Какие ограничения накладываются на колонку в PGSQL в случае, если она "Первичный ключ"?
+-- 3) Что будет если осуществить операцию select NULL + 2?
+-- 4) Назовите основные типы данных в PGSQL?
+-- 5) В каком случае использование LEFT JOIN превращает его в неявном виде в INNER JOIN?
+-- 6) Как осуществляется контактенация строк в PGSQL?
+-- 7) Назовите типы логических JOIN и расскажите про них?
+-- 8) Назовите типы физических JOIN?
+-- 9) Назовите компоненты СУБД
+-- 10) Что такое поле и что такое запись в РБД?
+-- 11) Назовите ключевые слои в хранилище данных?
+-- 12) На что разграничивают SQL(типы операций)?
+-- 13) Аггрегирующие функции в SQL?
+-- 14) Какой порядок выполнения операций движком PGSQL запроса?
+
+-- Задачи на РК
+-- 1/ Вывести информацию о client_id, name, surname, phone_number
+-- 2/ Вывести информацию о client_id, name, surname, phone_number, у которых client_id >= 30
+-- 3/ Вывести информацию сколько было потрачено в каждом заказе на один item_id
+-- 4/ Вывести информацию сколько стоил каждый заказ
+-- 5/ Вывести фамилию клиента и его номер заказа
+-- 6/ Вывести курьера и его количество заказа
+-- 7/ Вывести магазин и его количество заказа
+-- 8/ Вывести курьеров и их количество заказа в статусе "Delivered"
+-- 9/ Вывести курьера(courier_id, name, surname), у которого наибольшее количество заказов в статусе "Delivered"
+-- 10/ Вывести клиента(client_id, surname, name) с наименьшей суммой заказа
+
+-- Экстра задачки для онлайн сдачи:
+-- 1/ Создайте таблицу, у которой будет 5 колонок, 1 из которых будет первичным ключом.
+-- 2/ Создайте вторую таблицу, у которой будет первичный ключ и внешний ключ на ранее созданную таблицу.
+
+
+
+-- Удаляем таблицы, если они существуют
+DROP TABLE IF EXISTS marketplace.orders_details CASCADE;
+DROP TABLE IF EXISTS marketplace.orders CASCADE;
+DROP TABLE IF EXISTS marketplace.delivery CASCADE;
+DROP TABLE IF EXISTS marketplace.items CASCADE;
+DROP TABLE IF EXISTS marketplace.clients CASCADE;
+DROP TABLE IF EXISTS marketplace.courier CASCADE;
+DROP TABLE IF EXISTS marketplace.stores CASCADE;
+DROP TABLE IF EXISTS marketplace.suppliers CASCADE;
+
+-- Создаем схему (если не существует)
+CREATE SCHEMA IF NOT EXISTS marketplace;
+
+-- 1. Справочник клиентов
+CREATE TABLE IF NOT EXISTS marketplace.clients (
+    client_id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name           VARCHAR(100) NOT NULL,
+    surname        VARCHAR(100) NOT NULL,
+    phone_number   VARCHAR(20),
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Справочник курьеров
+CREATE TABLE IF NOT EXISTS marketplace.courier (
+    courier_id     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name           VARCHAR(100) NOT NULL,
+    surname        VARCHAR(100) NOT NULL,
+    courier_type   VARCHAR(20),
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Справочник магазинов
+CREATE TABLE IF NOT EXISTS marketplace.stores (
+    store_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    store_name     VARCHAR(150) NOT NULL,
+    working_hours  VARCHAR(50),
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Справочник поставщиков
+CREATE TABLE IF NOT EXISTS marketplace.suppliers (
+    supplier_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    supplier_name  VARCHAR(150) NOT NULL,
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. Товары (зависит от suppliers)
+CREATE TABLE IF NOT EXISTS marketplace.items (
+    item_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    item_desc      VARCHAR(255) NOT NULL,
+    supplier_id    BIGINT NOT NULL,
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_items_supplier FOREIGN KEY (supplier_id) REFERENCES marketplace.suppliers(supplier_id)
+);
+
+-- 6. Доставки (зависит от courier)
+CREATE TABLE IF NOT EXISTS marketplace.delivery (
+    delivery_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    delivery_status VARCHAR(50) NOT NULL,
+    courier_id     BIGINT NOT NULL,
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_delivery_courier FOREIGN KEY (courier_id) REFERENCES marketplace.courier(courier_id)
+);
+
+-- 7. Заказы (зависит от clients, stores, delivery)
+CREATE TABLE IF NOT EXISTS marketplace.orders (
+    order_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    delivery_id    BIGINT NOT NULL,
+    store_id       BIGINT NOT NULL,
+    client_id      BIGINT NOT NULL,
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_orders_delivery FOREIGN KEY (delivery_id) REFERENCES marketplace.delivery(delivery_id),
+    CONSTRAINT fk_orders_store FOREIGN KEY (store_id) REFERENCES marketplace.stores(store_id),
+    CONSTRAINT fk_orders_client FOREIGN KEY (client_id) REFERENCES marketplace.clients(client_id)
+);
+
+-- 8. Детали заказов (зависит от orders, items)
+CREATE TABLE IF NOT EXISTS marketplace.orders_details (
+    order_id       BIGINT NOT NULL,
+    order_line_id  BIGINT NOT NULL,
+    item_id        BIGINT NOT NULL,
+    qty            INT NOT NULL,
+    "cost"         NUMERIC(10, 2) NOT NULL,
+    created_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_dttm   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (order_id, order_line_id),
+    CONSTRAINT fk_details_order FOREIGN KEY (order_id) REFERENCES marketplace.orders(order_id),
+    CONSTRAINT fk_details_item FOREIGN KEY (item_id) REFERENCES marketplace.items(item_id)
+);
+
+-- ============================================================================
+-- ЧАСТЬ 2: DML (Вставка данных)
+-- ============================================================================
+
+-- 1. Клиенты (13 шт)
+INSERT INTO marketplace.clients (name, surname, phone_number, created_dttm) VALUES
+('Иван', 'Петров', '+79001110001', '2023-01-01 10:00:00'),
+('Анна', 'Смирнова', '+79001110002', '2023-01-02 11:00:00'),
+('Сергей', 'Иванов', '+79001110003', '2023-01-03 12:00:00'),
+('Ольга', 'Кузнецова', '+79001110004', '2023-01-04 13:00:00'),
+('Дмитрий', 'Попов', '+79001110005', '2023-01-05 14:00:00'),
+('Елена', 'Васильева', '+79001110006', '2023-01-06 15:00:00'),
+('Алексей', 'Соколов', '+79001110007', '2023-01-07 16:00:00'),
+('Мария', 'Михайлова', '+79001110008', '2023-01-08 17:00:00'),
+('Павел', 'Новиков', '+79001110009', '2023-01-09 18:00:00'),
+('Наталья', 'Федорова', '+79001110010', '2023-01-10 19:00:00'),
+('Максим', 'Морозов', '+79001110011', '2023-01-11 20:00:00'),
+('Юлия', 'Волкова', '+79001110012', '2023-01-12 21:00:00'),
+('Артем', 'Алексеев', '+79001110013', '2023-01-13 22:00:00');
+
+-- 2. Курьеры (10 шт)
+INSERT INTO marketplace.courier (name, surname, courier_type, created_dttm) VALUES
+('Курьер', 'Один', 'AUTO', '2023-01-01 09:00:00'),
+('Курьер', 'Два', 'BIKE', '2023-01-01 09:00:00'),
+('Курьер', 'Три', 'AUTO', '2023-01-01 09:00:00'),
+('Курьер', 'Четыре', 'WALK', '2023-01-01 09:00:00'),
+('Курьер', 'Пять', 'AUTO', '2023-01-01 09:00:00'),
+('Курьер', 'Шесть', 'BIKE', '2023-01-01 09:00:00'),
+('Курьер', 'Семь', 'AUTO', '2023-01-01 09:00:00'),
+('Курьер', 'Восемь', 'WALK', '2023-01-01 09:00:00'),
+('Курьер', 'Девять', 'AUTO', '2023-01-01 09:00:00'),
+('Курьер', 'Десять', 'BIKE', '2023-01-01 09:00:00');
+
+-- 3. Магазины (4 шт)
+INSERT INTO marketplace.stores (store_name, working_hours, created_dttm) VALUES
+('Магазин Центр', '09:00-21:00', '2023-01-01 08:00:00'),
+('Магазин Север', '10:00-22:00', '2023-01-01 08:00:00'),
+('Магазин Юг', '09:00-20:00', '2023-01-01 08:00:00'),
+('Магазин Запад', '10:00-21:00', '2023-01-01 08:00:00');
+
+-- 4. Поставщики (6 шт)
+INSERT INTO marketplace.suppliers (supplier_name, created_dttm) VALUES
+('Поставщик А', '2023-01-01 07:00:00'),
+('Поставщик Б', '2023-01-01 07:00:00'),
+('Поставщик В', '2023-01-01 07:00:00'),
+('Поставщик Г', '2023-01-01 07:00:00'),
+('Поставщик Д', '2023-01-01 07:00:00'),
+('Поставщик Е', '2023-01-01 07:00:00');
+
+-- 5. Товары (20 шт, распределены между 6 поставщиками)
+INSERT INTO marketplace.items (item_desc, supplier_id, created_dttm) VALUES
+('Товар 1', 1, '2023-02-01 10:00:00'),
+('Товар 2', 2, '2023-02-01 10:00:00'),
+('Товар 3', 3, '2023-02-01 10:00:00'),
+('Товар 4', 4, '2023-02-01 10:00:00'),
+('Товар 5', 5, '2023-02-01 10:00:00'),
+('Товар 6', 6, '2023-02-01 10:00:00'),
+('Товар 7', 1, '2023-02-01 10:00:00'),
+('Товар 8', 2, '2023-02-01 10:00:00'),
+('Товар 9', 3, '2023-02-01 10:00:00'),
+('Товар 10', 4, '2023-02-01 10:00:00'),
+('Товар 11', 5, '2023-02-01 10:00:00'),
+('Товар 12', 6, '2023-02-01 10:00:00'),
+('Товар 13', 1, '2023-02-01 10:00:00'),
+('Товар 14', 2, '2023-02-01 10:00:00'),
+('Товар 15', 3, '2023-02-01 10:00:00'),
+('Товар 16', 4, '2023-02-01 10:00:00'),
+('Товар 17', 5, '2023-02-01 10:00:00'),
+('Товар 18', 6, '2023-02-01 10:00:00'),
+('Товар 19', 1, '2023-02-01 10:00:00'),
+('Товар 20', 2, '2023-02-01 10:00:00');
+
+-- 6. Доставки (20 шт, привязаны к 10 курьерам по кругу)
+INSERT INTO marketplace.delivery (delivery_status, courier_id, created_dttm) VALUES
+('DELIVERED', 1, '2023-03-01 10:00:00'),
+('IN_PROGRESS', 2, '2023-03-01 11:00:00'),
+('DELIVERED', 3, '2023-03-01 12:00:00'),
+('NEW', 4, '2023-03-01 13:00:00'),
+('DELIVERED', 5, '2023-03-01 14:00:00'),
+('IN_PROGRESS', 6, '2023-03-01 15:00:00'),
+('DELIVERED', 7, '2023-03-01 16:00:00'),
+('NEW', 8, '2023-03-01 17:00:00'),
+('DELIVERED', 9, '2023-03-01 18:00:00'),
+('IN_PROGRESS', 10, '2023-03-01 19:00:00'),
+('DELIVERED', 1, '2023-03-02 10:00:00'),
+('NEW', 2, '2023-03-02 11:00:00'),
+('DELIVERED', 3, '2023-03-02 12:00:00'),
+('IN_PROGRESS', 4, '2023-03-02 13:00:00'),
+('DELIVERED', 5, '2023-03-02 14:00:00'),
+('NEW', 6, '2023-03-02 15:00:00'),
+('DELIVERED', 7, '2023-03-02 16:00:00'),
+('IN_PROGRESS', 8, '2023-03-02 17:00:00'),
+('DELIVERED', 9, '2023-03-02 18:00:00'),
+('NEW', 10, '2023-03-02 19:00:00');
+
+-- 7. Заказы (20 шт, связывают клиентов, магазины и доставки)
+-- Клиенты (1-13), Магазины (1-4), Доставки (1-20)
+INSERT INTO marketplace.orders (delivery_id, store_id, client_id, created_dttm) VALUES
+(1, 1, 1, '2023-03-01 10:00:00'),
+(2, 2, 2, '2023-03-01 11:00:00'),
+(3, 3, 3, '2023-03-01 12:00:00'),
+(4, 4, 4, '2023-03-01 13:00:00'),
+(5, 1, 5, '2023-03-01 14:00:00'),
+(6, 2, 6, '2023-03-01 15:00:00'),
+(7, 3, 7, '2023-03-01 16:00:00'),
+(8, 4, 8, '2023-03-01 17:00:00'),
+(9, 1, 9, '2023-03-01 18:00:00'),
+(10, 2, 10, '2023-03-01 19:00:00'),
+(11, 3, 11, '2023-03-02 10:00:00'),
+(12, 4, 12, '2023-03-02 11:00:00'),
+(13, 1, 13, '2023-03-02 12:00:00'),
+(14, 2, 1, '2023-03-02 13:00:00'),
+(15, 3, 2, '2023-03-02 14:00:00'),
+(16, 4, 3, '2023-03-02 15:00:00'),
+(17, 1, 4, '2023-03-02 16:00:00'),
+(18, 2, 5, '2023-03-02 17:00:00'),
+(19, 3, 6, '2023-03-02 18:00:00'),
+(20, 4, 7, '2023-03-02 19:00:00');
+
+-- 8. Детали заказов (от 1 до 5 позиций на заказ)
+-- Логика: Заказ 1 (1 строка), Заказ 2 (2 строки) ... Заказ 5 (5 строк), Заказ 6 (1 строка) и т.д.
+-- Товары берутся по кругу от 1 до 20.
+
+-- Order 1 (1 item)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(1, 1, 1, 2, 100.00, '2023-03-01 10:00:00');
+
+-- Order 2 (2 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(2, 1, 2, 1, 200.00, '2023-03-01 11:00:00'),
+(2, 2, 3, 3, 150.00, '2023-03-01 11:00:00');
+
+-- Order 3 (3 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(3, 1, 4, 1, 500.00, '2023-03-01 12:00:00'),
+(3, 2, 5, 2, 300.00, '2023-03-01 12:00:00'),
+(3, 3, 6, 1, 1000.00, '2023-03-01 12:00:00');
+
+-- Order 4 (4 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(4, 1, 7, 5, 50.00, '2023-03-01 13:00:00'),
+(4, 2, 8, 1, 1200.00, '2023-03-01 13:00:00'),
+(4, 3, 9, 2, 800.00, '2023-03-01 13:00:00'),
+(4, 4, 10, 1, 2500.00, '2023-03-01 13:00:00');
+
+-- Order 5 (5 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(5, 1, 11, 1, 100.00, '2023-03-01 14:00:00'),
+(5, 2, 12, 1, 100.00, '2023-03-01 14:00:00'),
+(5, 3, 13, 1, 100.00, '2023-03-01 14:00:00'),
+(5, 4, 14, 1, 100.00, '2023-03-01 14:00:00'),
+(5, 5, 15, 1, 100.00, '2023-03-01 14:00:00');
+
+-- Order 6 (1 item)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(6, 1, 16, 4, 400.00, '2023-03-01 15:00:00');
+
+-- Order 7 (2 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(7, 1, 17, 1, 600.00, '2023-03-01 16:00:00'),
+(7, 2, 18, 2, 700.00, '2023-03-01 16:00:00');
+
+-- Order 8 (3 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(8, 1, 19, 1, 800.00, '2023-03-01 17:00:00'),
+(8, 2, 20, 3, 900.00, '2023-03-01 17:00:00'),
+(8, 3, 1, 1, 100.00, '2023-03-01 17:00:00');
+
+-- Order 9 (4 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(9, 1, 2, 2, 200.00, '2023-03-01 18:00:00'),
+(9, 2, 3, 1, 150.00, '2023-03-01 18:00:00'),
+(9, 3, 4, 5, 500.00, '2023-03-01 18:00:00'),
+(9, 4, 5, 1, 300.00, '2023-03-01 18:00:00');
+
+-- Order 10 (5 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(10, 1, 6, 1, 1000.00, '2023-03-01 19:00:00'),
+(10, 2, 7, 1, 50.00, '2023-03-01 19:00:00'),
+(10, 3, 8, 1, 1200.00, '2023-03-01 19:00:00'),
+(10, 4, 9, 1, 800.00, '2023-03-01 19:00:00'),
+(10, 5, 10, 1, 2500.00, '2023-03-01 19:00:00');
+
+-- Order 11 (1 item)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(11, 1, 11, 10, 100.00, '2023-03-02 10:00:00');
+
+-- Order 12 (2 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(12, 1, 12, 1, 100.00, '2023-03-02 11:00:00'),
+(12, 2, 13, 1, 100.00, '2023-03-02 11:00:00');
+
+-- Order 13 (3 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(13, 1, 14, 2, 100.00, '2023-03-02 12:00:00'),
+(13, 2, 15, 1, 100.00, '2023-03-02 12:00:00'),
+(13, 3, 16, 3, 100.00, '2023-03-02 12:00:00');
+
+-- Order 14 (4 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(14, 1, 17, 1, 100.00, '2023-03-02 13:00:00'),
+(14, 2, 18, 1, 100.00, '2023-03-02 13:00:00'),
+(14, 3, 19, 1, 100.00, '2023-03-02 13:00:00'),
+(14, 4, 20, 1, 100.00, '2023-03-02 13:00:00');
+
+-- Order 15 (5 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(15, 1, 1, 1, 100.00, '2023-03-02 14:00:00'),
+(15, 2, 2, 1, 100.00, '2023-03-02 14:00:00'),
+(15, 3, 3, 1, 100.00, '2023-03-02 14:00:00'),
+(15, 4, 4, 1, 100.00, '2023-03-02 14:00:00'),
+(15, 5, 5, 1, 100.00, '2023-03-02 14:00:00');
+
+-- Order 16 (1 item)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(16, 1, 6, 5, 1000.00, '2023-03-02 15:00:00');
+
+-- Order 17 (2 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(17, 1, 7, 10, 50.00, '2023-03-02 16:00:00'),
+(17, 2, 8, 1, 1200.00, '2023-03-02 16:00:00');
+
+-- Order 18 (3 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(18, 1, 9, 1, 800.00, '2023-03-02 17:00:00'),
+(18, 2, 10, 1, 2500.00, '2023-03-02 17:00:00'),
+(18, 3, 11, 2, 100.00, '2023-03-02 17:00:00');
+
+-- Order 19 (4 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(19, 1, 12, 1, 100.00, '2023-03-02 18:00:00'),
+(19, 2, 13, 1, 100.00, '2023-03-02 18:00:00'),
+(19, 3, 14, 1, 100.00, '2023-03-02 18:00:00'),
+(19, 4, 15, 1, 100.00, '2023-03-02 18:00:00');
+
+-- Order 20 (5 items)
+INSERT INTO marketplace.orders_details (order_id, order_line_id, item_id, qty, "cost", created_dttm) VALUES
+(20, 1, 16, 1, 100.00, '2023-03-02 19:00:00'),
+(20, 2, 17, 1, 100.00, '2023-03-02 19:00:00'),
+(20, 3, 18, 1, 100.00, '2023-03-02 19:00:00'),
+(20, 4, 19, 1, 100.00, '2023-03-02 19:00:00'),
+(20, 5, 20, 1, 100.00, '2023-03-02 19:00:00');

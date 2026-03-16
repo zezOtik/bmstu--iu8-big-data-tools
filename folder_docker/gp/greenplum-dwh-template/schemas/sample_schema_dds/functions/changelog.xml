@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+     <changeSet author="12345678" id="create:function:fn_sample_function_1" context="all" runOnChange="true" >
+        <sqlFile path="fn_sample_function_1.sql" splitStatements="false" relativeToChangelogFile="true"/>
+    </changeSet>
+
+</databaseChangeLog>
