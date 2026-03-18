@@ -23,8 +23,11 @@ SELECT c.name, c.surname, COUNT(o.order_id) FROM marketplace.delivery as d
 SELECT s.store_name, count(o.order_id) FROM marketplace.stores as s join marketplace.orders o on s.store_id = o.store_id GROUP BY s.store_id;
 
 -- task 8 Вывести курьеров и их количество заказа в статусе "Delivered"
-SELECT c.name, c.surname, count(d.delivery_id) FROM marketplace.courier as c
-    join marketplace.delivery d on c.courier_id = d.courier_id WHERE d.delivery_status='DELIVERED' group by c.courier_id;
+SELECT c.name, c.surname, COUNT(o.order_id) FROM marketplace.courier AS c
+    JOIN marketplace.delivery AS d ON c.courier_id = d.courier_id
+    JOIN marketplace.orders  AS o ON d.delivery_id = o.delivery_id
+WHERE o.order_status = 'DELIVERED'
+GROUP BY c.courier_id;
 
 -- task 9 Вывести курьера(courier_id, name, surname), у которого наибольшее количество заказов в статусе "Delivered"
 SELECT c.courier_id, c.name, c.surname FROM marketplace.courier as c
