@@ -39,7 +39,7 @@ SELECT c.courier_id, c.name, c.surname FROM marketplace.courier as c
 SELECT c.client_id, c.surname, c.name FROM marketplace.clients as c
     join marketplace.orders as o on o.client_id = c.client_id
     join marketplace.orders_details as o2 on o.order_id = o2.order_id
-    GROUP BY c.client_id
+    GROUP BY o.order_id, c.client_id, c.surname, c.name
 ORDER BY SUM(o2.cost) ASC LIMIT 1;
 
 
