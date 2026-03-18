@@ -8,7 +8,7 @@ SELECT client_id, name, surname, phone_number FROM marketplace.clients WHERE cli
 SELECT order_id, item_id, SUM(cost) FROM marketplace.orders_details GROUP BY order_id, item_id;
 
 -- task 4 Вывести информацию сколько стоил каждый заказ
-SELECT order_id, SUM(cost) FROM marketplace.orders_details GROUP BY order_id;
+SELECT order_id, SUM(qty * cost) AS order_total FROM marketplace.orders_details GROUP BY order_id;
 
 -- task 5 Вывести фамилию клиента и его номер заказа
 SELECT c.surname, o.order_id FROM marketplace.orders as o JOIN marketplace.clients c on c.client_id = o.client_id;
