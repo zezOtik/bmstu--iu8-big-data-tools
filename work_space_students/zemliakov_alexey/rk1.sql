@@ -5,7 +5,7 @@ SELECT client_id, name, surname, phone_number FROM marketplace.clients;
 SELECT client_id, name, surname, phone_number FROM marketplace.clients WHERE client_id >= 30;
 
 -- task 3 Вывести информацию сколько было потрачено в каждом заказе на один item_id
-SELECT item_id, SUM(cost) FROM marketplace.orders_details GROUP BY (item_id);
+SELECT order_id, item_id, SUM(cost) FROM marketplace.orders_details GROUP BY order_id, item_id;
 
 -- task 4 Вывести информацию сколько стоил каждый заказ
 SELECT order_id, SUM(cost) FROM marketplace.orders_details GROUP BY order_id;
