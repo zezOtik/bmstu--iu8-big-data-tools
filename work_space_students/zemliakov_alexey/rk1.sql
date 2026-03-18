@@ -31,8 +31,9 @@ GROUP BY c.courier_id;
 
 -- task 9 Вывести курьера(courier_id, name, surname), у которого наибольшее количество заказов в статусе "Delivered"
 SELECT c.courier_id, c.name, c.surname FROM marketplace.courier as c
-    join marketplace.delivery d on c.courier_id = d.courier_id WHERE d.delivery_status='DELIVERED' group by c.courier_id
-                                                    ORDER BY COUNT(d.delivery_id) DESC LIMIT 1;
+    join marketplace.delivery d on c.courier_id = d.courier_id
+    join marketplace.orders o on d.delivery_id = o.delivery_id WHERE d.delivery_status='DELIVERED' group by c.courier_id
+                                                    ORDER BY COUNT(o.order_id) DESC LIMIT 1;
 
 -- task 10 Вывести клиента(client_id, surname, name) с наименьшей суммой заказа
 SELECT c.client_id, c.surname, c.name FROM marketplace.clients as c
