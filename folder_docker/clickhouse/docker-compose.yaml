@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:26.2
+    container_name: clickhouse-server
+    hostname: clickhouse-server
+    ports:
+      - "8123:8123" # HTTP интерфейс (для API, JDBC, веб-интерфейсов)
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      # Если нужно переопределить конфиги, раскомментируйте строку ниже:
+      # - ./config:/etc/clickhouse-server
+    environment:
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=secret_password # Замените на свой надежный пароль
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 # Включает управление доступом через SQL
+      - TZ=UTC
+    healthcheck:
+      # Проверка через HTTP ping (не требует пароля по умолчанию)
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  clickhouse_data:
+  clickhouse_logs:
