@@ -1,10 +1,27 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: superset-postgres
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset_secure_pass
+      POSTGRES_DB: superset
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - analytics-net
+
   clickhouse-server:
     image: clickhouse/clickhouse-server:26.2
     container_name: clickhouse-server
-    hostname: clickhouse-server
     ports:
       - "8123:8123"
       - "9000:9000"
@@ -12,7 +29,6 @@ services:
       - clickhouse_data:/var/lib/clickhouse
       - clickhouse_logs:/var/log/clickhouse-server
       - ./import:/var/lib/clickhouse/user_files/import
-      # - ./config/users.d/custom_settings.xml:/etc/clickhouse-server/users.d/custom_settings.xml
     environment:
       - CLICKHOUSE_USER=default
       - CLICKHOUSE_PASSWORD=secret_password
@@ -23,9 +39,49 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s  # Увеличили время на старт
+      start_period: 30s
     restart: unless-stopped
+    networks:
+      - analytics-net
+
+  superset:
+    image: apache/superset:4.0.0
+    container_name: superset-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+    environment:
+      - DATABASE_URI=postgresql+psycopg2://superset:superset_secure_pass@postgres:5432/superset
+      - SUPERSET_SECRET_KEY=my_very_secure_key_here_123!
+      - SUPERSET_LOAD_EXAMPLES=no
+      - PYTHONPATH=/app/pythonpath
+    volumes:
+      - ./superset_config.py:/app/pythonpath/superset_config.py:ro
+      - superset_home:/app/superset_home
+    ports:
+      - "8088:8088"
+    entrypoint:
+      - /bin/bash
+      - "-c"
+      - |
+        pip install psycopg2-binary 'SQLAlchemy>=1.4,<2.0' 'alembic>=1.12,<1.14' clickhouse-connect && \
+        superset db upgrade && \
+        superset init && \
+        superset fab create-admin --username admin --password admin --firstname Admin --lastname User --email admin@example.com && \
+        superset run -p 8088 --host 0.0.0.0
+    restart: unless-stopped
+    networks:
+      - analytics-net
+
+networks:
+  analytics-net:
+    driver: bridge
 
 volumes:
+  postgres_data:
   clickhouse_data:
   clickhouse_logs:
+  superset_home:
+#jdbc+clickhouse://default:secret_password@localhost:8123/default
