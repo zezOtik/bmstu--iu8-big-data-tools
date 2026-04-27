@@ -1,0 +1,7 @@
+data/raw/*
+data/prepared/*
+!data/raw/.gitkeep
+!data/prepared/.gitkeep
+__pycache__/
+*.pyc
+import/
