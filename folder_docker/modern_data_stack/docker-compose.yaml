@@ -1,0 +1,162 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+# Basic Airflow cluster configuration for CeleryExecutor with Redis and PostgreSQL.
+#
+# WARNING: This configuration is for local development. Do not use it in a production deployment.
+#
+# This configuration supports basic configuration using environment variables or an .env file
+# The following variables are supported:
+#
+# AIRFLOW_IMAGE_NAME           - Docker image name used to run Airflow.
+#                                Default: apache/airflow:2.3.4
+# AIRFLOW_UID                  - User ID in Airflow containers
+#                                Default: 50000
+# Those configurations are useful mostly in case of standalone testing/running Airflow in test/try-out mode
+#
+# _AIRFLOW_WWW_USER_USERNAME   - Username for the administrator account (if requested).
+#                                Default: airflow
+# _AIRFLOW_WWW_USER_PASSWORD   - Password for the administrator account (if requested).
+#                                Default: airflow
+# _PIP_ADDITIONAL_REQUIREMENTS - Additional PIP requirements to add when starting all containers.
+#                                Default: ''
+#
+# Feel free to modify this file to suit your needs.
+---
+
+version: '3'
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-01-20T14-49-07Z
+    command: server /data --console-address ":9001"
+    ports:
+      - "29000:9000"
+      - "29001:9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    volumes:
+      - minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mc:
+    depends_on:
+      - minio
+    image: minio/mc
+    environment:
+      - AWS_ACCESS_KEY_ID=minio
+      - AWS_SECRET_ACCESS_KEY=minio123
+      - AWS_REGION=ru-central1
+    entrypoint: |
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://minio:9000 minio minio123) do echo '...waiting...' && sleep 1; done;
+      # Проверяем существование p-bucket-nessie, создаем если его нет
+      if ! /usr/bin/mc ls minio/p-bucket-nessie > /dev/null 2>&1; then
+        /usr/bin/mc mb minio/p-bucket-nessie;
+      fi
+      tail -f /dev/null
+      /usr/bin/mc policy set public minio/p-bucket-nessie;
+      "
+
+  nessie:
+    image: ghcr.io/projectnessie/nessie:0.104.1
+    environment:
+      - NESSIE_CATALOG_VALIDATE_SECRETS=true
+      - NESSIE_VERSION_STORE_TYPE=JDBC2
+      - NESSIE_VERSION_STORE_PERSIST_JDBC_DATASOURCE=postgresql
+      - QUARKUS_DATASOURCE_POSTGRESQL_JDBC_URL=jdbc:postgresql://postgres-nessie-raw:5432/postgres
+      - QUARKUS_DATASOURCE_POSTGRESQL_USERNAME=postgres
+      - QUARKUS_DATASOURCE_POSTGRESQL_PASSWORD=mysecretpassword
+      - NESSIE_GC_ENABLED=true
+
+      - quarkus.log.console.level=DEBUG
+      - quarkus.log.category."io.smallrye.config".level=DEBUG
+
+      - nessie.catalog.default-warehouse=warehouse
+
+      # The base location of the warehouse named "warehouse"
+      - nessie.catalog.warehouses.warehouse.location=s3://p-bucket-nessie/
+
+      # Default/global S3 configuration settings
+      - nessie.catalog.service.s3.default-options.access-key=urn:nessie-secret:quarkus:my-secrets-default
+
+      - my-secrets-default.name=minio
+      - my-secrets-default.secret=minio123
+
+      - nessie.catalog.service.s3.default-options.endpoint=http://minio:9000
+      - nessie.catalog.service.s3.default-options.region=ru-central1
+      - nessie.catalog.service.s3.default-options.path-style-access=true
+
+    ports:
+      - "19120:19120"  # Expose Nessie API port
+    depends_on:
+      postgres-nessie-raw:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  postgres-nessie-raw:
+    image: postgres:16
+    container_name: postgres-nessie-raw
+    ports:
+      - 5433:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+    volumes:
+      - postgres-db-volume-nessie-raw:/var/lib/postgresql/data
+
+  trino:
+    image: 'trinodb/trino:474'
+    hostname: trino
+    ports:
+      - '9090:8080'
+    volumes:
+      - .trino/etc:/etc/trino
+      - .trino/conf:/etc/trino/conf
+
+
+  postgres-nessie:
+    image: postgres:16
+    container_name: postgres-nessie
+    # ports:
+    #   - 5433:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+    volumes:
+      - postgres-db-volume_nessie:/var/lib/postgresql/data
+
+volumes:
+  postgres-db-volume-nessie-raw:
+  postgres-db-volume_nessie:
+  minio:
