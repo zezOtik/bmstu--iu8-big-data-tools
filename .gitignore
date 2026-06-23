@@ -1,2 +1,3 @@
 pgdata
 greenplum-dwh-template
+folder_docker/clickhouse/import/
